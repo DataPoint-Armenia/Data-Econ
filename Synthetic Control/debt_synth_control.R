@@ -5,10 +5,6 @@
 AdCSV <- read.csv("~/Downloads/AdCSV.csv")
 library(tidysynth)
 
-my_synth_function <- function(df, ){
-  
-}
-
 
 Inflation.World.Bank <- read.csv("~/Downloads/Inflation World Bank - Sheet1.csv")
 shock_year <- 2018
@@ -181,7 +177,7 @@ countries_in_range <- c("Albania", "Algeria", "Andorra", "Angola",
                         "Sweden", "Switzerland", "Tajikistan", "Tanzania", "Thailand", 
                         "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", 
                         "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", 
-                        "United States", "Upper middle income", "Uruguay", "Uzbekistan", 
+                        "United States", "Uruguay", "Uzbekistan", 
                         "Vanuatu", "Vietnam", "Yemen, Rep.", 
                         "Zambia", "Zimbabwe")
 
@@ -197,7 +193,7 @@ beggining_year = 1995
 shock_year = 2017
 end_year = 2019
 
-Synth_Data <- df %>% dplyr::filter((country %in% top_10) & (year <= end_year) ) %>%
+Synth_Data <- df %>% dplyr::filter((country %in% countries_in_range) & (year <= end_year) ) %>%
   # initial the synthetic control object
   synthetic_control(outcome = GDP_per_capita_2010_USD, # outcome
                     unit = country, # unit index in the panel data
