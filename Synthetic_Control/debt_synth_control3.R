@@ -7,12 +7,12 @@ library(tidysynth)
 
 
 Inflation.World.Bank <- read.csv("~/Downloads/Inflation World Bank - Sheet1.csv")
-shock_year <- 2018
+shock_year <- 2017
 beggining_year <- min(AdCSV$Year)
 
 AdCSV_Synth <-
   
-  AdCSV %>%
+  AdCSV %>% na.omit() %>%
   
   # initial the synthetic control object
   synthetic_control(outcome = Y, # outcome
@@ -25,7 +25,7 @@ AdCSV_Synth <-
   
   # Generate the aggregate predictors used to fit the weights
   generate_predictor(time_window = beggining_year:shock_year,
-                     X1 = mean(X1, na.rm = TRUE))  %>% 
+                     Y = mean(Y, na.rm = TRUE))  %>% 
   
   # Generate the fitted weights for the synthetic control
   generate_weights(optimization_window = beggining_year:shock_year, # time to use in the optimization task
