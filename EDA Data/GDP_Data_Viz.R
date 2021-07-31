@@ -1,5 +1,8 @@
-# How does Armenia compare economically with the rest of its neighbors?
 
+#https://data.worldbank.org/indicator/NY.GDP.MKTP.CD
+
+
+# How does Armenia compare economically with the rest of its neighbors?
 
 # packages
 library("WDI")
@@ -55,6 +58,9 @@ library(dplyr)
 library(tidyr)
 library(forcats)
 library(viridis)
+
+
+# Boxplot
 p <- subsetted_countries2%>%
   ggplot( aes(x=country, y=GDP_per_capita_pct_change, colour=country, fill=country)) +
   geom_boxplot() + 
@@ -73,8 +79,18 @@ new_data <- xtabs(GDP_per_capita_pct_change ~ year + country, data = subsetted_c
 new_data2 <- as.data.frame.matrix(new_data)
 
 
+library(reshape)
+cast(dat1, name ~ numbers)
+
+
+
+#### Regression Against Other Neighboring Economies
 library(PerformanceAnalytics)
 chart.Correlation(new_data)
+
+library(GGaly)
+ggpairs(new_data)
+
 # Armenia + Georgia
 # Armenia + Azerbajan
 # Armenia + Russia
@@ -93,20 +109,90 @@ eq <- function(x,y) {
   )
 }
 
-ggplot(new_data2,aes(x = Armenia, y = Georgia)) + 
+ggplot(new_data2,aes(y = Armenia, x = Georgia)) + 
   geom_point() + 
   geom_smooth(method = "lm", se=FALSE) +
   geom_text(x = -.10, y = .15, label = eq(new_data2$Armenia,new_data2$Georgia), parse = TRUE)
 
-
-
-ggplot(new_data2,aes(x = Armenia, y = Russia)) + 
+ggplot(new_data2,aes(y = Armenia, x = Azerbaijan)) + 
   geom_point() + 
   geom_smooth(method = "lm", se=FALSE) +
-  geom_text(x = -.10, y = .10, label = eq(new_data2$Armenia,new_data2$Russia), parse = TRUE)
+  geom_text(x = -.10, y = .15, label = eq(new_data2$Azerbaijan,new_data2$Armenia), parse = TRUE)
 
 
 
+ggplot(new_data2,aes(y = Armenia, x = Russia, col = 1995:2020)) + 
+  geom_point() + 
+  geom_smooth(method = "lm", se=FALSE) +
+  geom_text(x = -.10, y = .10, label = eq(new_data2$Russia, new_data2$Armenia), parse = TRUE)
+
+
+### Insert Raincloud
+
+
+ggplot(subsetted_countries2,aes(x = country, y = GDP_per_capita_pct_change, fill = country)) +
+  ggdist::stat_halfeye(
+    adjust = .4,
+    justification = -.2,
+    .width = 0,
+    point_colour = NA
+  ) + 
+  geom_boxplot(
+    width = .12,
+    outlier.color = NA, 
+    alpha = .5
+  ) +
+  ggdist::stat_dots(
+    side = "left",
+    justitication = 1.1,
+    binwidth = .005
+  )  + coord_flip() 
+
+
+
+
+### Now find the nearest neighbors
+
+GDP_5_year_avg <- WDI_GDP_per_capita %>% filter(year > 2016) %>% group_by(country) %>%
+  dplyr::summarize(Mean_Raw_GDP = mean(GDP_per_capita_2010_USD, na.rm=TRUE))
+
+Armenia_Result <- GDP_5_year_avg %>% filter(country == "Armenia") %>% select(Mean_Raw_GDP) %>% as.numeric()
+View(GDP_5_year_avg %>%
+  group_by(country) %>%
+  arrange(
+    abs(Mean_Raw_GDP - Armenia_Result)) %>% mutate(Diff = Mean_Raw_GDP - Armenia_Result))
+
+
+
+# Growth Rate
+GDP_growth_all <- WDI_GDP_per_capita %>% arrange(year, country) %>% 
+  group_by(country) %>% mutate_each(funs(pct), c(GDP_per_capita_2010_USD)) %>%
+   filter(!is.na(GDP_per_capita_2010_USD))
+
+GDP_growth_5_year_avg <- GDP_growth_all %>% filter(year > 2016) %>% group_by(country) %>%
+  dplyr::summarize(Mean_GDP_growth_rate = mean(GDP_per_capita_2010_USD, na.rm=TRUE))
+
+
+Armenia_Result_gdp_growth <- GDP_growth_5_year_avg %>% filter(country == "Armenia") %>% select(Mean_GDP_growth_rate) %>% as.numeric()
+View(GDP_growth_5_year_avg %>%
+       group_by(country) %>%
+       arrange(
+         abs(Mean_GDP_growth_rate - Armenia_Result_gdp_growth)) %>% mutate("Diff" = Mean_GDP_growth_rate - Armenia_Result_gdp_growth))
+
+
+
+
+
+
+
+
+
+
+
+
+test <- WDI(indicator="SL.UEM.TOTL.ZS", country= "all", start=1994, end=2021)
+
+View(test)
 
 
 # library(ggpubr)
