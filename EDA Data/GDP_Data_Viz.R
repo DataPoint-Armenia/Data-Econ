@@ -1,13 +1,34 @@
 
-#https://data.worldbank.org/indicator/NY.GDP.MKTP.CD
+#######
+## Copyright (R) DataPoint Armenia
+## Authors: Gary Vartanian, Nanneh Chehras, Lusine, and Ruben Dermoyan
+######
 
 
+###
+# So this started with an interest in trying to find out the economic variables
+# of armenia and how is it doing
+# this serves as tricky, as there is not an easy way to compare and pull up
+# data on this region. 
+
+# the best organization that we were able to find that can provide a neat 
+# arsenal of economic data and statistics was the world bank. Luckily, 
+# they have an API that allowed for the easy fetching of this data. 
+# it is with this availability that we want to examine the economic data of 
+# Armenia and its neighbors and find out the current trajctory and also comparison. 
+
+# For reference the site we will use is: #https://data.worldbank.org/indicator/NY.GDP.MKTP.CD
+
+## Loading up the packages 
+# First thing is to load up the packages that we are going to use
 # How does Armenia compare economically with the rest of its neighbors?
 
 # packages
 library("WDI")
 library("dplyr")
 library("sjlabelled")
+
+# In this case the Data Pulling is gdp per capita but that can be applied to any case
 
 ### using API to pull data
 WDI_GDP_per_capita <- WDI(indicator="NY.GDP.PCAP.KD", country= "all", start=1994, end=2021)
@@ -27,6 +48,24 @@ subsetted_countries[subsetted_countries=="Russian Federation"]<-"Russia"
 
 # Start Visualizaing 
 library(ggplot2)
+
+ggplot(data=subsetted_countries %>% filter(country == "Armenia"), aes(x=year, y=GDP_per_capita_2010_USD, color=country)) +
+  geom_line()+
+  geom_point() + 
+  ggtitle("GDP per capita of Armenia and its Neighbors in 2010 USD dollars") + 
+  scale_y_continuous(labels = scales::dollar_format()) + 
+  labs(y="GDP Per capita in 2010 USD")
+
+# Looking at a plot of Armenia by itself, 
+# you think it looks good, you can see the growth rate that has happened. 
+# An acceleration from 2000-2008, then crash of 08 hit it hard
+
+# After a year of loss, the economy started to recover, you can see a some stagnation in 2015-2016
+# but then strong growth until covid year
+
+#So looking at the plots are fun, but its usually better to have something to compare it to. 
+#How does Armenia compare against its neighbors. 
+
 ggplot(data=subsetted_countries, aes(x=year, y=GDP_per_capita_2010_USD, color=country)) +
   geom_line()+
   geom_point() + 
@@ -34,7 +73,12 @@ ggplot(data=subsetted_countries, aes(x=year, y=GDP_per_capita_2010_USD, color=co
   scale_y_continuous(labels = scales::dollar_format()) + 
   labs(y="GDP Per capita in 2010 USD")
 
+# Well comparitively to its neighbors it seems pretty outclassed
+# The closest economically it resembles Georgia in total value
 
+#ToDo add other comparison countries here
+
+# Well what about in growth? how Does that look like?
 
 library(dplyr)
 subsetted_countries <- subsetted_countries %>% arrange(year, country)
@@ -47,11 +91,35 @@ library('scales')
 subsetted_countries2 <- subsetted_countries %>% group_by(country) %>% mutate_each(funs(pct), c(GDP_per_capita_2010_USD))
 names(subsetted_countries2)[3] <- "GDP_per_capita_pct_change"
 #https://stackoverflow.com/questions/31352685/how-can-i-calculate-the-percentage-change-within-a-group-for-multiple-columns-in
+
+ggplot(data=subsetted_countries2 %>% filter(country == "Armenia"), aes(x=year, y=GDP_per_capita_pct_change, color=country)) +
+  geom_line()+
+  geom_point() + scale_y_continuous(labels = function(x) paste0(x*100, "%")) + 
+  ggtitle("% change for GDP per capita of Armenia and its Neighbors") + 
+  labs(y="% change in GDP Per capita")
+
+### so interestingly this does a good job of highlighting the growth rate. 
+### you can see that the fastest growth rate economically happened during the 2000's. 
+### It was achieving growth rate of 10-15%
+### now it seems between 0-7.5% steady growth rate. 
+
+
+### how does it compare with its neighbors?
+### try to look for the top most line?
+### you can see Armenia being on the higher side. 
+
+
 ggplot(data=subsetted_countries2, aes(x=year, y=GDP_per_capita_pct_change, color=country)) +
   geom_line()+
   geom_point() + scale_y_continuous(labels = function(x) paste0(x*100, "%")) + 
   ggtitle("% change for GDP per capita of Armenia and its Neighbors") + 
   labs(y="% change in GDP Per capita")
+
+### Armenia is having quite a fast growth even compared to its neighbors
+
+#ToDo add other comparison countries here
+
+
 
 library(ggplot2)
 library(dplyr)
@@ -88,8 +156,21 @@ cast(dat1, name ~ numbers)
 library(PerformanceAnalytics)
 chart.Correlation(new_data)
 
-library(GGaly)
-ggpairs(new_data)
+library(GGally)
+my_fn <- function(data, mapping, ...){
+  p <- ggplot(data = data, mapping = mapping) + 
+    geom_point() + 
+    #geom_smooth(method=loess, fill="red", color="red", ...) +
+    geom_smooth(method=lm, fill="blue", color="blue", se = FALSE)
+  p
+}
+library(corrplot)
+
+corrplot.mixed(cor(new_data2), lower = 'shade', upper = 'pie')
+ggpairs(new_data2)
+ggpairs(new_data2, lower = list(continuous = my_fn))
+
+#ggpairs(subsetted_countries2 %>% select(GDP_per_capita_pct_change), ggplot2::aes(colour=country))
 
 # Armenia + Georgia
 # Armenia + Azerbajan
@@ -108,6 +189,8 @@ eq <- function(x,y) {
     )
   )
 }
+
+# Ticker for growth is NY.GDP.MKTP.KD.ZG
 
 ggplot(new_data2,aes(y = Armenia, x = Georgia)) + 
   geom_point() + 
@@ -129,6 +212,8 @@ ggplot(new_data2,aes(y = Armenia, x = Russia, col = 1995:2020)) +
 
 ### Insert Raincloud
 
+ggplot(new_data2, aes(x=Armenia)) + geom_histogram(color="darkblue", fill="lightblue")
+# Let's see if we can make it more attractive
 
 ggplot(subsetted_countries2,aes(x = country, y = GDP_per_capita_pct_change, fill = country)) +
   ggdist::stat_halfeye(
@@ -179,6 +264,13 @@ View(GDP_growth_5_year_avg %>%
        arrange(
          abs(Mean_GDP_growth_rate - Armenia_Result_gdp_growth)) %>% mutate("Diff" = Mean_GDP_growth_rate - Armenia_Result_gdp_growth))
 
+
+
+
+
+
+#### Inflation 
+# FP.CPI.TOTL.ZG
 
 
 
