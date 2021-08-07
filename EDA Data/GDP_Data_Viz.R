@@ -1,7 +1,7 @@
 
 #######
 ## Copyright (R) DataPoint Armenia
-## Authors: Gary Vartanian, Nanneh Chehras, Lusine, and Ruben Dermoyan
+## Authors: Gary Vartanian, Nanneh Chehras, Lusine Khachatryan, and Ruben Dermoyan
 ######
 
 
