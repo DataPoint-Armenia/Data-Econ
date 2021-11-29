@@ -277,24 +277,47 @@ View(GDP_growth_5_year_avg %>%
 library(tidysynth)
 library(tidyverse)
 
+
+### using API to pull data
+WDI_GDP_per_capita <- WDI(indicator="NY.GDP.PCAP.KD", country= "all", start=1994, end=2021)
+# renaming variables appropriately
+names(WDI_GDP_per_capita) <- c("iso2c", "country", "GDP_per_capita_2010_USD", "year")
+
 check_list <- WDI_GDP_per_capita %>% filter(year > 2000) %>% drop_na() %>% group_by(country) %>% count() 
 check_list2 <- check_list %>% filter(n == 20) %>% select(country)
-top50 <- c("Burundi", "China", "Myanmar", "Ethiopia", "Congo, Dem. Rep.", 
-           "Sierra Leone", "Mozambique", "Malawi", "Rwanda", "Macao SAR, China", 
+top50 <- c("Armenia", "Burundi", #"China", 
+           "Myanmar", "Ethiopia", "Congo, Dem. Rep.", 
+           "Sierra Leone", "Mozambique", "Malawi", "Rwanda", #"Macao SAR, China", 
            "Niger", "Nepal", "Central African Republic", "Cambodia", "Madagascar", 
-           "Tajikistan", "Liberia", "Bangladesh", "Burkina Faso", 
+           "Tajikistan", "Liberia", "Bangladesh",#, "Burkina Faso", 
            "Togo", "Guinea-Bissau", "Lao PDR", "Tanzania", 
-            "Uganda", "Mongolia", 
+           "Uganda", "Mongolia", 
            "Chad", "Timor-Leste", 
            "Kyrgyz Republic", "Guinea", "Mali", "Uzbekistan", "Vietnam", 
            "India", "Sudan", 
            "Ghana",  "Kenya", "Zambia", "Lesotho", 
-           "Bhutan", "Pakistan", "Haiti", "Sri Lanka")
+           "Bhutan", "Pakistan", "Haiti", "Sri Lanka"
+           )
 
+top5 <- c("Armenia", "Mongolia", "Vietnam", "Bhutan", "Sri Lanka", "Ghana", "Uzbekistan")
 
-inputted_data <-  WDI_GDP_per_capita %>% filter(year >= 2000) %>% drop_na() %>% filter(country %in% unlist(check_list2$country)) %>%
-  #filter(country %in% top50) %>% 
+inputted_data <-  WDI_GDP_per_capita %>% filter(year >= 2010) %>% drop_na() %>% filter(country %in% unlist(check_list2$country)) %>%
+  filter(country %in% top5) %>% 
   arrange(country, year) 
+x <- reshape(inputted_data %>% select(country, year, GDP_per_capita_2010_USD), idvar = "country", timevar = "year", direction = "wide")
+#write.csv(x, "GDP_per_capita2.csv")
+
+
+
+start <- ""
+for (i in 5:21){
+  start <- paste0(start, "$A$",i,"*C",i, "+")
+}
+start
+
+
+
+
 
 smoking_out <-
   inputted_data %>% 
@@ -303,20 +326,31 @@ smoking_out <-
                     unit = country, # unit index in the panel data
                     time = year, # time index in the panel data
                     i_unit = "Armenia", # unit where the intervention occurred
-                    i_time = 2016, # time period when the intervention occurred
+                    i_time = 2020, # time period when the intervention occurred
                     generate_placebos=T # generate placebo synthetic controls (for inference)
   ) %>%
   
-  generate_predictor(time_window = 2000:2016, 
+  generate_predictor(time_window = 2010:2020, 
   mean_GDP_per_capita_2010_USD = mean(GDP_per_capita_2010_USD, na.rm = TRUE)) %>% 
-  
-    generate_predictor(time_window = 2009,
-                       cigsale_1980 = GDP_per_capita_2010_USD) %>%
+    generate_predictor(time_window = 2013,
+                     cigsale_1978 = GDP_per_capita_2010_USD) %>%
     generate_predictor(time_window = 2014,
+                     cigsale_1979 = GDP_per_capita_2010_USD) %>%
+    generate_predictor(time_window = 2015,
+                       cigsale_1980 = GDP_per_capita_2010_USD) %>%
+    generate_predictor(time_window = 2016,
+                     cigsale_1981 = GDP_per_capita_2010_USD) %>%
+    generate_predictor(time_window = 2017,
+                     cigsale_1982 = GDP_per_capita_2010_USD) %>%
+    generate_predictor(time_window = 2018,
+                     cigsale_1983 = GDP_per_capita_2010_USD) %>%
+    generate_predictor(time_window = 2019,
                        cigsale_1988 = GDP_per_capita_2010_USD) %>% 
+    generate_predictor(time_window = 2020,
+                     cigsale_1989 = GDP_per_capita_2010_USD) %>% 
 
   # Generate the fitted weights for the synthetic control
-  generate_weights(optimization_window = 2001:2016, margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 ) %>%
+  generate_weights(optimization_window = 2015:2019, margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 ) %>%
   
   # Generate the synthetic control
   generate_control()
@@ -326,7 +360,156 @@ smoking_out %>% plot_trends()
 smoking_out %>% plot_differences()
 smoking_out %>% plot_weights()
 
+
+
+
+smoking_out <-
+  inputted_data %>% 
+  # initial the synthetic control object
+  synthetic_control(outcome = GDP_per_capita_2010_USD, # outcome
+                    unit = country, # unit index in the panel data
+                    time = year, # time index in the panel data
+                    i_unit = "Armenia", # unit where the intervention occurred
+                    i_time = 2020, # time period when the intervention occurred
+                    generate_placebos=T # generate placebo synthetic controls (for inference)
+  ) %>%
+  
+  generate_predictor(time_window = 2010:2019, 
+                     mean_GDP_per_capita_2010_USD = mean(GDP_per_capita_2010_USD, na.rm = TRUE)) %>% 
+  
+  generate_predictor(time_window = 2015,
+                     cigsale_1980 = GDP_per_capita_2010_USD) %>%
+  generate_predictor(time_window = 2019,
+                     cigsale_1988 = GDP_per_capita_2010_USD) %>% 
+  
+  # Generate the fitted weights for the synthetic control
+  generate_weights(optimization_window = 2010:2020, margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 ) %>%
+  
+  # Generate the synthetic control
+  generate_control()
+
+
+smoking_out %>% plot_trends()
+smoking_out %>% plot_differences()
+smoking_out %>% plot_weights()
+
+
 # It's actually doing fine, but for whatever reason, its just reading the observed in backwards.
+
+
+#### Inflation ######
+
+Inflation_data <- WDI(indicator="FP.CPI.TOTL.ZG", country= "all", start=1994, end=2021)
+# renaming variables appropriately
+names(Inflation_data) <- c("iso2c", "country", "Inflation", "year")
+
+check_list <- Inflation_data %>% filter(year > 2000) %>% drop_na() %>% group_by(country) %>% count() 
+check_list2 <- check_list %>% filter(n == 20) %>% select(country)
+
+
+inputted_data <-  Inflation_data %>% filter(year >= 2000) %>% drop_na() %>% filter(country %in% unlist(check_list2$country)) %>%
+  filter(country %in% top50) %>% 
+  arrange(country, year) 
+
+smoking_out <-
+  inputted_data %>% 
+  # initial the synthetic control object
+  synthetic_control(outcome = Inflation, # outcome
+                    unit = country, # unit index in the panel data
+                    time = year, # time index in the panel data
+                    i_unit = "Armenia", # unit where the intervention occurred
+                    i_time = 2019, # time period when the intervention occurred
+                    generate_placebos=T # generate placebo synthetic controls (for inference)
+  ) %>%
+  
+  generate_predictor(time_window = 2000:2019, 
+                     mean_GDP_per_capita_2010_USD = mean(Inflation, na.rm = TRUE)) %>% 
+  
+  generate_predictor(time_window = 2009,
+                     cigsale_1980 = Inflation) %>%
+  generate_predictor(time_window = 2014,
+                     cigsale_1988 = Inflation) %>% 
+  
+  # Generate the fitted weights for the synthetic control
+  generate_weights(optimization_window = 2001:2019, margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 ) %>%
+  
+  # Generate the synthetic control
+  generate_control()
+
+
+smoking_out %>% plot_trends()
+smoking_out %>% plot_differences()
+smoking_out %>% plot_weights()
+
+
+
+
+inputted_data <-  Inflation_data %>% filter(year >= 2013) %>% drop_na() %>% filter(country %in% unlist(check_list2$country)) %>%
+  filter(country %in% top50) %>% 
+  arrange(country, year) 
+smoking_out <-
+  inputted_data %>% 
+  # initial the synthetic control object
+  synthetic_control(outcome = Inflation, # outcome
+                    unit = country, # unit index in the panel data
+                    time = year, # time index in the panel data
+                    i_unit = "Armenia", # unit where the intervention occurred
+                    i_time = 2020, # time period when the intervention occurred
+                    generate_placebos=T # generate placebo synthetic controls (for inference)
+  ) %>%
+  
+  generate_predictor(time_window = 2013:2019, 
+                     mean_GDP_per_capita_2010_USD = mean(Inflation, na.rm = TRUE)) %>% 
+  
+  generate_predictor(time_window = 2015,
+                     cigsale_1980 = Inflation) %>%
+  generate_predictor(time_window = 2019,
+                     cigsale_1988 = Inflation) %>% 
+  generate_predictor(time_window = 2013,
+                     cigsale_1978 = Inflation) %>%
+  generate_predictor(time_window = 2014,
+                     cigsale_1979 = Inflation) %>%
+  generate_predictor(time_window = 2015,
+                     cigsale_1980 = Inflation) %>%
+  generate_predictor(time_window = 2016,
+                     cigsale_1981 = Inflation) %>%
+  generate_predictor(time_window = 2017,
+                     cigsale_1982 = Inflation) %>%
+  generate_predictor(time_window = 2018,
+                     cigsale_1983 = Inflation) %>%
+  generate_predictor(time_window = 2019,
+                     cigsale_1988 = Inflation) %>% 
+  generate_predictor(time_window = 2020,
+                     cigsale_1989 = Inflation) %>% 
+  
+  # Generate the fitted weights for the synthetic control
+  generate_weights(optimization_window = 2015:2020, margin_ipop = .02,sigf_ipop = 7,bound_ipop = 6 ) %>%
+  
+  # Generate the synthetic control
+  generate_control()
+
+
+smoking_out %>% plot_trends()
+smoking_out %>% plot_differences()
+smoking_out %>% plot_weights()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 library(tidyverse)
